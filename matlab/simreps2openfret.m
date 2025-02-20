@@ -55,10 +55,10 @@ for n = 1:numel(filenames)
 
     dataset.traces = [];
     fprintf(1,'Loading traces...\n');
-    for p = 1:ntraces
+    for p = 1:1000
         % Place intensity vs time data into channel 2
         trace.channels(2).channel_type = channel2.type;
-        trace.channels(2).data = tracesmat(n,:);
+        trace.channels(2).data = tracesmat(p,:);
         trace.channels(2).excitation_wavelength = channel2.excitation_wavelength;
         trace.channels(2).emission_wavelength = channel2.emission_wavelength;
 
