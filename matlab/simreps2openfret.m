@@ -1,7 +1,7 @@
 % Convert SiMREPS traces.dat files into OpenFRET format
 function simreps2openfret()
 
-compress = false;
+compress = true;
 
 % Set dataset attributes
 dataset.title = '20250204_AJB_2: miRNA probe test';
@@ -46,6 +46,8 @@ if ~isa(filenames,"cell")
     filenames = {filenames};
 end
 
+traceTemplate = initializeTrace(channel1,channel2);
+
 % Iterate through files, load traces, and write .json for each dataset
 for n = 1:numel(filenames)
     fprintf(1,['Creating OpenFRET file for input file ',filenames{n},'...\n']);
@@ -53,30 +55,23 @@ for n = 1:numel(filenames)
     tracesmat = tracesmat.traces;
     ntraces = height(tracesmat);
 
-    dataset.traces = [];
+    dataset.traces = repmat(traceTemplate, 1, ntraces); % Preallocate traces matrix
+
     fprintf(1,'Loading traces...\n');
-    for p = 1:1000
+    for p = 1:ntraces
         % Place intensity vs time data into channel 2
-        trace.channels(2).channel_type = channel2.type;
-        trace.channels(2).data = tracesmat(p,:);
-        trace.channels(2).excitation_wavelength = channel2.excitation_wavelength;
-        trace.channels(2).emission_wavelength = channel2.emission_wavelength;
+        dataset.traces(p).channels(2).data = tracesmat(p,:);
 
         % Create dummy channel 2 to satisfy META-SiM Projector input
         % requirements
-        trace.channels(1).channel_type = channel1.type;
-        trace.channels(1).data = zeros(size(trace.channels(2).data));
-        trace.channels(1).excitation_wavelength = channel1.excitation_wavelength;
-        trace.channels(1).emission_wavelength = channel1.emission_wavelength;
-
-        dataset.traces = [dataset.traces, trace];
+        dataset.traces(p).channels(1).data = zeros(size(dataset.traces(p).channels(2).data));
     end
 
     % Write to file
     outfilename = strcat(filepath,filenames{n}(1:end-4),'.json');
     fprintf(1,'Traces loaded.\nWriting %s to file...\n',outfilename);
     if compress
-        openfret.write(dataset, outfilename,'compress');
+        openfret.write(dataset, outfilename, 'compress');
     else
         openfret.write(dataset, outfilename);
     end
@@ -90,4 +85,20 @@ if exist("workingdir")
     cd(workingdir);
 end
 
+end
+
+function trace = initializeTrace(channel1, channel2)
+    % Set properties of trace struct
+    % Place intensity vs time data into channel 2
+    trace.channels(2).channel_type = channel2.type;
+    trace.channels(2).data = [];
+    trace.channels(2).excitation_wavelength = channel2.excitation_wavelength;
+    trace.channels(2).emission_wavelength = channel2.emission_wavelength;
+    
+    % Create dummy channel 2 to satisfy META-SiM Projector input
+    % requirements
+    trace.channels(1).channel_type = channel1.type;
+    trace.channels(1).data = [];
+    trace.channels(1).excitation_wavelength = channel1.excitation_wavelength;
+    trace.channels(1).emission_wavelength = channel1.emission_wavelength;
 end
