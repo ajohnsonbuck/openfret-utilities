@@ -1,0 +1,91 @@
+% Convert SiMREPS traces.dat files into OpenFRET format
+function simreps2openfret()
+
+compress = false;
+
+% Set dataset attributes
+dataset.title = '20250204_AJB_2: miRNA probe test';
+dataset.description = 'Short probe test with miR-16 and miR-141';
+dataset.experiment_type = '2-Color FRET';
+dataset.authors = {'Alex Johnson-Buck'};
+dataset.institution = 'The University of Michigan';
+dataset.date = '2025-02-04';
+dataset.metadata.experiment_id = '20250204_AJB_2'; % Example metadata
+dataset.sample_details.buffer_conditions = '4X PBS';
+dataset.sample_details.other_details.temperature = '28 C';
+dataset.instrument_details.microscope = 'Olympus IX83 (Laser Bay 2)';
+dataset.instrument_details.laser = '640nm';
+dataset.instrument_details.detector = 'Hamamatsu Orca Fusion EMCCD';
+dataset.instrument_details.other_details.objective = '60X 1.5 NA';
+
+channel1.type = 'donor';
+channel1.excitation_wavelength = 532;
+channel1.emission_wavelength = 580;
+
+channel1.type = 'acceptor';
+channel1.excitation_wavelength = 640;
+channel1.emission_wavelength = 680;
+
+%----------------------------------------------
+
+persistent filepath %Store user file path directory in between function calls   
+
+if exist('filepath')==1 && (isa(filepath,"string") || isa(filepath,"char"))
+    workingdir = pwd;
+    cd(filepath)
+end
+
+% Open files
+[filenames, filepath] = uigetfile("*_traces.dat","MultiSelect","on");
+
+if ~isa(filenames,"cell")
+    if filenames==0
+        disp('No filenames specified; aborting operation.');
+        return
+    end
+    filenames = {filenames};
+end
+
+% Iterate through files, load traces, and write .json for each dataset
+for n = 1:numel(filenames)
+    fprintf(1,['Creating OpenFRET file for input file ',filenames{n},'...\n']);
+    tracesmat = load(strcat(filepath,filesep,filenames{n}),"-mat","traces");
+    tracesmat = tracesmat.traces;
+    ntraces = height(tracesmat);
+
+    dataset.traces = [];
+    fprintf(1,'Loading traces...\n');
+    for p = 1:100
+        trace.channels(2).channel_type = channel1.type;
+        trace.channels(2).data = tracesmat(n,:);
+        trace.channels(2).excitation_wavelength = channel1.excitation_wavelength;
+        trace.channels(2).emission_wavelength = channel1.emission_wavelength;
+
+        trace.channels(1).channel_type = channel1.type;
+        trace.channels(1).data = tracesmat(n,:)*0;
+        trace.channels(1).excitation_wavelength = channel1.excitation_wavelength;
+        trace.channels(1).emission_wavelength = channel1.emission_wavelength;
+        trace.metadata.trace_id = strcat('trace_',num2str(n));
+
+        dataset.traces = [dataset.traces, trace];
+    end
+
+    % Write to file
+    outfilename = strcat(filepath,filenames{n}(1:end-4),'.json');
+    fprintf(1,'Traces loaded.\nWriting %s to file...\n',outfilename);
+    if compress
+        openfret.write(dataset, outfilename,'compress');
+    else
+        openfret.write(dataset, outfilename);
+    end
+
+    dataset = rmfield(dataset,'traces'); % Reset traces struct for each new file
+end
+
+fprintf('Done.\n');
+
+if exist("workingdir")
+    cd(workingdir);
+end
+
+end
