@@ -6,6 +6,7 @@ function simreps2openfret(varargin)
 % 'description' (str): experiment description
 % 'experiment_type' (str): type of experiment (e.g., 'SiMREPS')
 % 'authors' (cell array of str or char): authors of experiment (e.g., {'Jane Doe', 'John Doe'})
+% Other recommended metadata:
 % 'institution' (str): institution where the work was done
 % 'date' (str): date of experiment
 % 'experiment_id' (str): Unique ID of experiment
@@ -16,19 +17,9 @@ function simreps2openfret(varargin)
 % 'objective' (str): Objective used
 
 %% Default attributes
-title = 'Title';
-description = 'Description';
-experiment_type = '';
-authors = {''};
-institution = '';
-date = '';
-experiment_id = ''; 
-buffer_conditions = '';
-temperature = '';
-microscope = '';
-detector = '';
-objective = '';
-excitation_wavelength = 640;
+dataset.title = '(Title)';
+dataset.description = '(Description of experiment)';
+dataset.experiment_type = 'SiMREPS';
 channel1.type = 'donor';
 channel2.type = 'acceptor';
 channel2.excitation_wavelength = 640;
@@ -62,8 +53,8 @@ if nargin > 0
             dataset.instrument_details.detector = varargin{n+1};
         elseif strcmpi(varargin{n},'objective')
             dataset.instrument_details.objective = varargin{n+1};
-        else
-            dataset.(varargin{n}) = varargin{n+1};
+        else 
+            dataset.(varargin{n}) = varargin{n+1};  % Allow other user-specified fields
         end
     end
 end
@@ -79,7 +70,7 @@ if exist('filepath')==1 && (isa(filepath,"string") || isa(filepath,"char"))
 end
 
 % Open files
-[filenames, filepath] = uigetfile("*_traces.dat","MultiSelect","on");
+[filenames, filepath] = uigetfile('*_traces.dat; *_traces.mat',"MultiSelect","on");
 
 if ~isa(filenames,"cell")
     if filenames==0
@@ -117,6 +108,7 @@ for n = 1:numel(filenames)
     
     % Optionally, compress file
     if compress
+        fprintf(1,'Compressing file %s to .zip...\n',outfilename);
         writeZip(outfilename);
     end
 
@@ -137,14 +129,11 @@ function trace = initializeTrace(channel1, channel2)
     trace.channels(2).channel_type = channel2.type;
     trace.channels(2).data = [];
     trace.channels(2).excitation_wavelength = channel2.excitation_wavelength;
-    % trace.channels(2).emission_wavelength = channel2.emission_wavelength;
     
     % Create dummy channel 2 to satisfy META-SiM Projector input
     % requirements
     trace.channels(1).channel_type = channel1.type;
     trace.channels(1).data = [];
-    % trace.channels(1).excitation_wavelength = channel1.excitation_wavelength;
-    % trace.channels(1).emission_wavelength = channel1.emission_wavelength;
 end
 
 function writeZip(filename)

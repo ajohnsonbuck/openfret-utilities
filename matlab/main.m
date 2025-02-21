@@ -1,6 +1,6 @@
 % Script to convert SiMREPS data to the OpenFRET format
 
-%% User-defined metadata
+%% User-defined metadata - modify this for each experiment
 
 title = '20250204_AJB_2: miRNA probe test';
 description = 'Short probe test with miR-16 and miR-141';
@@ -8,7 +8,7 @@ experiment_type = 'SiMREPS';
 authors = {'Alex Johnson-Buck'};
 institution = 'The University of Michigan';
 date = '2025-02-04';
-experiment_id = '20250204_AJB_2'; % Example metadata
+experiment_id = '20250204_AJB_2';
 buffer_conditions = '4X PBS';
 temperature = '28 C';
 microscope = 'Olympus IX83 (Laser Bay 2)';
@@ -21,7 +21,7 @@ excitation_wavelength = 640;
 % Compress to zip file (recommend setting to 'true')
 compress = true;
 
-%% Run conversion
+%% Run conversion to OpenFRET
 
 simreps2openfret('title',title,...
         'description',description,...
