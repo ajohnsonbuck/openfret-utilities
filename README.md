@@ -1,5 +1,5 @@
 # OpenFRET Utilities
-This repository contains utilities for converting to and from the [OpenFRET format] (https://github.com/simol-lab/OpenFRET) for single-molecule traces data.
+This repository contains utilities for converting to and from the [OpenFRET format](https://github.com/simol-lab/OpenFRET) for single-molecule traces data.
 
 ## Content
 ### Matlab
