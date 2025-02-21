@@ -1,32 +1,75 @@
 % Convert SiMREPS traces.dat files into OpenFRET format
-function simreps2openfret()
+function simreps2openfret(varargin)
+% Args (name-value pairs) -- all are optional:
+% 'compress' (logical): true or false -- specify whether to use zip compression (default = true)
+% 'title' (str): experiment title
+% 'description' (str): experiment description
+% 'experiment_type' (str): type of experiment (e.g., 'SiMREPS')
+% 'authors' (cell array of str or char): authors of experiment (e.g., {'Jane Doe', 'John Doe'})
+% 'institution' (str): institution where the work was done
+% 'date' (str): date of experiment
+% 'experiment_id' (str): Unique ID of experiment
+% 'buffer_conditions' (str): Buffer used in experiment
+% 'temperature' (str): Temperature of experiment
+% 'microscope' (str): Microscope used
+% 'detector' (str): Detector used
+% 'objective' (str): Objective used
 
-compress = true;
-
-% Set dataset attributes
-dataset.title = '20250204_AJB_2: miRNA probe test';
-dataset.description = 'Short probe test with miR-16 and miR-141';
-dataset.experiment_type = '2-Color FRET';
-dataset.authors = {'Alex Johnson-Buck'};
-dataset.institution = 'The University of Michigan';
-dataset.date = '2025-02-04';
-dataset.metadata.experiment_id = '20250204_AJB_2'; % Example metadata
-dataset.sample_details.buffer_conditions = '4X PBS';
-dataset.sample_details.other_details.temperature = '28 C';
-dataset.instrument_details.microscope = 'Olympus IX83 (Laser Bay 2)';
-dataset.instrument_details.laser = '640nm';
-dataset.instrument_details.detector = 'Hamamatsu Orca Fusion EMCCD';
-dataset.instrument_details.other_details.objective = '60X 1.5 NA';
-
+%% Default attributes
+title = 'Title';
+description = 'Description';
+experiment_type = '';
+authors = {''};
+institution = '';
+date = '';
+experiment_id = ''; 
+buffer_conditions = '';
+temperature = '';
+microscope = '';
+detector = '';
+objective = '';
+excitation_wavelength = 640;
 channel1.type = 'donor';
-channel1.excitation_wavelength = 532;
-channel1.emission_wavelength = 580;
-
 channel2.type = 'acceptor';
 channel2.excitation_wavelength = 640;
-channel2.emission_wavelength = 680;
 
-%----------------------------------------------
+compress = true; % Compress output to .zip file
+
+%% Parse arguments
+if nargin > 0
+    for n = 1:2:nargin
+        if strcmpi(varargin{n},'compress')
+            if isa(varargin{n+1},'logical')
+               compress = varargin{n+1};
+            else
+                error("'compress' value must be either true or false")
+            end
+        elseif strcmpi(varargin{n},'authors') || strcmpi(varargin{n},'author')
+            if ~isa(varargin{n+1},'cell')
+                dataset.authors = varargin(n+1);
+            else
+                dataset.authors = varargin{n+1};
+            end
+        elseif strcmpi(varargin{n},'experiment_id')
+            dataset.metadata.experiment_id = varargin{n+1};
+        elseif strcmpi(varargin{n},'buffer_conditions')
+            dataset.sample_details.buffer_conditions = varargin{n+1};
+        elseif strcmpi(varargin{n},'microscope')
+            dataset.instrument_details.microscope = varargin{n+1};
+        elseif strcmpi(varargin{n},'laser')
+            dataset.instrument_details.laser = varargin{n+1};
+        elseif strcmpi(varargin{n},'detector')
+            dataset.instrument_details.detector = varargin{n+1};
+        elseif strcmpi(varargin{n},'objective')
+            dataset.instrument_details.objective = varargin{n+1};
+        else
+            dataset.(varargin{n}) = varargin{n+1};
+        end
+    end
+end
+
+
+%% Load files and write OpenFRET
 
 persistent filepath %Store user file path directory in between function calls   
 
@@ -70,10 +113,11 @@ for n = 1:numel(filenames)
     % Write to file
     outfilename = strcat(filepath,filenames{n}(1:end-4),'.json');
     fprintf(1,'Traces loaded.\nWriting %s to file...\n',outfilename);
+    openfret.write(dataset, outfilename);
+    
+    % Optionally, compress file
     if compress
-        openfret.write(dataset, outfilename, 'compress');
-    else
-        openfret.write(dataset, outfilename);
+        writeZip(outfilename);
     end
 
     dataset = rmfield(dataset,'traces'); % Reset traces struct for each new file
@@ -93,12 +137,18 @@ function trace = initializeTrace(channel1, channel2)
     trace.channels(2).channel_type = channel2.type;
     trace.channels(2).data = [];
     trace.channels(2).excitation_wavelength = channel2.excitation_wavelength;
-    trace.channels(2).emission_wavelength = channel2.emission_wavelength;
+    % trace.channels(2).emission_wavelength = channel2.emission_wavelength;
     
     % Create dummy channel 2 to satisfy META-SiM Projector input
     % requirements
     trace.channels(1).channel_type = channel1.type;
     trace.channels(1).data = [];
-    trace.channels(1).excitation_wavelength = channel1.excitation_wavelength;
-    trace.channels(1).emission_wavelength = channel1.emission_wavelength;
+    % trace.channels(1).excitation_wavelength = channel1.excitation_wavelength;
+    % trace.channels(1).emission_wavelength = channel1.emission_wavelength;
+end
+
+function writeZip(filename)
+    zipfilename = strcat(filename,'.zip');
+    zip(zipfilename,filename);
+    delete(filename);
 end
