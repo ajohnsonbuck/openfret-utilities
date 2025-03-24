@@ -16,7 +16,7 @@ objective = '60X 1.5 NA';
 excitation_wavelength.channel1 = 532; % In nanometers
 excitation_wavelength.channel2 = 640; % In nanometers
 
-options.use_channel1 = false; % true = include channel 1 (green/donor) in OpenFRET; false = omit
+options.use_channel1 = true; % true = include channel 1 (green/donor) in OpenFRET; false = omit
 options.use_channel2 = true; % true = include channel 2 (red/acceptor) in OpenFRET; false = omit
 
 options.donor_crosstalk = 0.09; % (For 2-channel traces files): crosstalk of donor into acceptor channel, as fraction of donor-channel signal
@@ -37,8 +37,9 @@ convertFiles('title',title,...
         'excitation_wavelength',excitation_wavelength,...
         'options',options);
 
-%% Convert SiMREPS traces.dat files into OpenFRET format
-function convertFiles(varargin)
+%% Functions
+function convertFiles(varargin) 
+% Convert SiMREPS traces.dat files into OpenFRET format
 % Args (name-value pairs) -- all are optional:
 % 'compress' (logical): true or false -- specify whether to use zip compression (default = true)
 % 'title' (str): experiment title
@@ -141,11 +142,15 @@ for n = 1:numel(filenames)
     elseif strcmp(filepath(end-6:end),'.traces')
         traces2ch = openTraces(filepath,options.donor_crosstalk);
         donor = traces2ch.donor;
+        donorpks = traces2ch.peaks.donor;
         acceptor = traces2ch.acceptor;
+        acceptorpks = traces2ch.peaks.acceptor;
         if ~(options.use_channel1)
             donor = donor*0;
+            donorpks = donorpks*0;
         elseif ~(options.use_channel2)
             acceptor = acceptor*0;
+            acceptorpks = acceptorpks*0;
         end
         suffixLength = 6;
     end
@@ -163,9 +168,11 @@ for n = 1:numel(filenames)
     for p = 1:ntraces
         % Place intensity vs time data into channel 2
         dataset.traces(p).channels(1).data = donor(p,:);
+        dataset.traces(p).channels(1).xy = donorpks(p,:);
 
         % Place intensity vs time data into channel 2
         dataset.traces(p).channels(2).data = acceptor(p,:);
+        dataset.traces(p).channels(2).xy = acceptorpks(p,:);
     end
 
     % Write to file
@@ -249,8 +256,12 @@ function traces = openTraces(filename, donor_crosstalk)
     acceptor = acceptor - donor*donor_crosstalk;
 
     % Load peaktable
-    filename2 = strcat(filename(1:end-7), '.pks');
-    peaktable = load(filename2);
+    try
+    filename_pks = strcat(filename(1:end-7), '.pks');
+    peaktable = load(filename_pks);
+    catch
+        error(sprintf('Could not load peaktable file named %s',filename_pks));
+    end
 
     % Store intensities and peak positions in output struct
     traces.donor = donor;
