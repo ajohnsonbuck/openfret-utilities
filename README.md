@@ -14,7 +14,9 @@ This repository contains utilities for converting to and from the [OpenFRET form
 * *_traces.dat or *_traces.mat: .mat format with traces in rows and frames in columns
 * *.traces: ieee-le binary format containing donor and acceptor traces
 
-**test_data**: Folder with data files for testing traces2openfret. Run testAll.m to confirm the conversion is working properly on all test_data types.
+**testAll.m**: Run this script to confirm the conversion is working properly on all input data types in `test_data`.
+
+**test_data**: Folder with data files for testing traces2openfret.
 
 ## Contributions
 Contributions to this project are welcome! Please open an issue or submit a pull request.
